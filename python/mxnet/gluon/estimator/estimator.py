@@ -17,16 +17,15 @@
 
 # coding: utf-8
 # pylint: disable=wildcard-import
-"""Contrib datasets."""
+"""Gluon Estimator"""
 
-# from ...gluon import EventHandler
 
-from .event_handler import LoggingHandler, CheckpointHandler, MetricHandler
+import warnings
 
+from .event_handler import LoggingHandler
 from ... import *
 from ... import gluon, autograd
 from ...metric import EvalMetric, Loss
-import warnings
 
 __all__ = ['Estimator']
 
@@ -36,6 +35,7 @@ class Estimator(object):
     Estimator Class for easy model training
     TODO: update doc
     """
+
     def __init__(self, net,
                  loss=None,
                  metrics=None,
@@ -52,7 +52,6 @@ class Estimator(object):
             self.metrics = [metrics]
         else:
             self.metrics = metrics or []
-
 
         self.initializer = initializer
         # store training statistics
@@ -78,10 +77,10 @@ class Estimator(object):
         # initialize the net if no initializer specified
         if not self.initializer:
             # no force reinitialize in case net is already initialized outside fit method
-            self.net.initialize(init=init.Xavier(), ctx = ctx, force_reinit=False)
+            self.net.initialize(init=init.Xavier(), ctx=ctx, force_reinit=False)
         else:
             # initialize with user specified initializer
-            self.net.initialize(init=self.initializer, ctx = ctx, force_reinit=True)
+            self.net.initialize(init=self.initializer, ctx=ctx, force_reinit=True)
 
         if isinstance(ctx, Context):
             self.ctx = [ctx]
@@ -110,8 +109,6 @@ class Estimator(object):
             batch_size=None,
             event_handlers=None):
 
-
-
         if not batch_size:
             batch_size = 32 * len(self.ctx)
 
@@ -119,6 +116,7 @@ class Estimator(object):
         if not event_handlers:
             event_handlers.append(LoggingHandler(self))
 
+        # TODO: handle validation logic and update train stats
         do_validation = False
         if val_data:
             do_validation = True
@@ -126,7 +124,6 @@ class Estimator(object):
         # training begin
         for handler in event_handlers:
             handler.train_begin()
-
 
         for epoch in range(epochs):
             # epoch begin
@@ -152,7 +149,6 @@ class Estimator(object):
                     for loss in self.loss:
                         losses.append([loss(y_hat, y) for y_hat, y in zip(pred, label)])
 
-
                 for loss in losses:
                     for l in loss:
                         l.backward()
@@ -161,11 +157,11 @@ class Estimator(object):
                 for metric in self.metrics:
                     metric.update(label, pred)
                     self.train_stats['batch_' + metric.name] = metric.get()[1]
-                for loss, loss_metric,  in zip(losses, self.loss_metrics):
+                for loss, loss_metric, in zip(losses, self.loss_metrics):
                     loss_metric.update(0, [l for l in loss])
                     self.train_stats['batch_' + loss_metric.name] = loss_metric.get()[1]
 
-                self.train_stats['step'] = str(batch_size*(i+1)) + '/' + str(len(train_data._dataset))
+                self.train_stats['step'] = str(batch_size * (i + 1)) + '/' + str(len(train_data._dataset))
 
                 for trainer in self.trainers:
                     trainer.step(batch_size)
