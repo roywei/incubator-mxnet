@@ -19,7 +19,8 @@
 """Definition of various recurrent neural network cells."""
 __all__ = ['EventHandler','LoggingHandler','CheckpointHandler','MetricHandler']
 import logging
-
+import os
+import time
 
 class EventHandler(object):
     def __init__(self, estimator):
@@ -48,16 +49,20 @@ class LoggingHandler(EventHandler):
     """Basic Logging Handler that applies to every Gluon estimator by default.
 
     """
-    def __init__(self, estimator, log_loc=None, log_name=None):
+    def __init__(self, estimator, log_name=None, file_name=None, file_location=None,):
         super(LoggingHandler, self).__init__(estimator)
-        self._log_loc= log_loc
-        self._log_name= log_name
-        filehandler = logging.FileHandler(self._log_loc + self._log_name)
-        streamhandler = logging.StreamHandler()
-        self.logger = logging.getLogger('')
+        log_name = log_name or 'Gluon Estimator'
+        self.logger = logging.getLogger(log_name)
         self.logger.setLevel(logging.INFO)
-        self.logger.addHandler(filehandler)
+        streamhandler = logging.StreamHandler()
         self.logger.addHandler(streamhandler)
+        # save logger to file only if file name or location is specified
+        if file_name or file_location:
+            file_name = file_name or log_name or 'estimator_log'
+            file_location = file_location or './'
+            filehandler = logging.FileHandler(os.path.join(file_location, file_name))
+            self.logger.addHandler(filehandler)
+
 
     def train_begin(self):
         pass
@@ -66,26 +71,29 @@ class LoggingHandler(EventHandler):
         pass
 
     def batch_begin(self):
-        pass
+        self.batch_start = time.time()
 
     def batch_end(self):
-        pass
+        batch_time = time.time() -  self.batch_start
+        epoch = self._estimator.train_stats['epochs'][-1]
+        step = self._estimator.train_stats['step']
+        msg = '[Epoch %d] [Step %s] time/step: %.3fs ' % (epoch, step, batch_time)
+        for key in self._estimator.train_stats.keys():
+            if key.startswith('batch_'):
+                msg += key[6:] + ': ' + '%.4f ' %self._estimator.train_stats[key]
+        self.logger.info(msg)
 
     def epoch_begin(self):
-        pass
+        self.epoch_start = time.time()
 
     def epoch_end(self):
-        print("working on logswq")
-        train_metric_name= self._estimator._train_stats.keys()
-        #train_metric_name, train_metric_val =zip(*(self._estimator._metric.get_name_value()))
-        print(train_metric_name)
-        for names in train_metric_name:
-            train_metric_score= self._estimator._train_stats[names][-1]
-            self.logger.info('[Epoch %d] training: %s=%f' % (self._estimator._epoch, names, train_metric_score))
-        print("logged")
-        #self.logger.info('[Epoch %d] speed: %d samples/sec\ttime cost: %f' % (self._estimator._epoch, throughput, time.time() - tic))
-        #self.logger.info('[Epoch %d] validation: err-top1=%f err-top5=%f' % (self._estimator._epoch, err_top1_val, err_top5_val))
-# setup logging
+        epoch_time = time.time() -  self.epoch_start
+        epoch = self._estimator.train_stats['epochs'][-1]
+        msg = 'Epoch %d finished in %.3fs: ' % (epoch, epoch_time)
+        for key in self._estimator.train_stats.keys():
+            if key.startswith('train_') or key.startswith('test_'):
+                msg += key + ': ' + '%.4f ' %self._estimator.train_stats[key][epoch]
+        self.logger.info(msg)
 
 
 class CheckpointHandler(EventHandler):

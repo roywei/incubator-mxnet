@@ -60,7 +60,7 @@ class Estimator(object):
         self.train_stats['epochs'] = []
         self.train_stats['learning_rate'] = []
         # time used for each epoch
-        self.train_stats['time'] = []
+        self.train_stats['step'] = ''
         for metric in self.metrics:
             # record a history of metrics over each epoch
             self.train_stats['train_' + metric.name] = []
@@ -74,6 +74,7 @@ class Estimator(object):
             # only record the latest loss numbers after each batch
             self.train_stats['batch_' + loss.name] = 0.
 
+        # TODO：discuss whether to 1) hide trainer logic from user 2) user has to initialize net and trainer before estimator
         # initialize the net if no initializer specified
         if not self.initializer:
             # no force reinitialize in case net is already initialized outside fit method
@@ -115,7 +116,8 @@ class Estimator(object):
             batch_size = 32 * len(self.ctx)
 
         event_handlers = event_handlers or []
-
+        if not event_handlers:
+            event_handlers.append(LoggingHandler(self))
 
         do_validation = False
         if val_data:
@@ -163,8 +165,7 @@ class Estimator(object):
                     loss_metric.update(0, [l for l in loss])
                     self.train_stats['batch_' + loss_metric.name] = loss_metric.get()[1]
 
-
-                print(self.train_stats)
+                self.train_stats['step'] = str(batch_size*(i+1)) + '/' + str(len(train_data._dataset))
 
                 for trainer in self.trainers:
                     trainer.step(batch_size)
@@ -175,7 +176,6 @@ class Estimator(object):
 
             for metric in self.metrics + self.loss_metrics:
                 self.train_stats['train_' + metric.name].append(metric.get()[1])
-            print(self.train_stats)
             # epoch end
             for handler in event_handlers:
                 handler.epoch_end()
