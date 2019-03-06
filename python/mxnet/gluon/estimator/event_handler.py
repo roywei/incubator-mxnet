@@ -16,7 +16,7 @@
 
 # pylint: disable=arguments-differ, too-many-lines
 # coding: utf-8
-"""Gluon EvenetHandlers for Estimators"""
+"""Gluon EventHandlers for Estimators"""
 
 __all__ = ['EventHandler', 'LoggingHandler', 'CheckpointHandler']
 import logging

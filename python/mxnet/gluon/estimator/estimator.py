@@ -25,6 +25,7 @@ import warnings
 from .event_handler import LoggingHandler
 from ... import *
 from ... import gluon, autograd
+from ...context import cpu, gpu, num_gpus
 from ...metric import EvalMetric, Loss
 
 __all__ = ['Estimator']
@@ -41,7 +42,7 @@ class Estimator(object):
                  metrics=None,
                  initializer=None,
                  trainers=None,
-                 ctx=None):
+                 context=None):
 
         self.net = net
         if isinstance(loss, gluon.loss.Loss):
@@ -73,23 +74,34 @@ class Estimator(object):
             # only record the latest loss numbers after each batch
             self.train_stats['batch_' + loss.name] = 0.
 
-        # TODO：discuss whether to 1) hide trainer logic from user 2) user has to initialize net and trainer before estimator
-        # initialize the net if no initializer specified
-        if not self.initializer:
-            # no force reinitialize in case net is already initialized outside fit method
-            self.net.initialize(init=init.Xavier(), ctx=ctx, force_reinit=False)
-        else:
-            # initialize with user specified initializer
-            self.net.initialize(init=self.initializer, ctx=ctx, force_reinit=True)
-
-        if isinstance(ctx, Context):
-            self.ctx = [ctx]
-        if not ctx:
-            if context.num_gpus() > 0:
+        # handle context
+        if isinstance(context, Context):
+            self.context = [context]
+        if not context:
+            if num_gpus() > 0:
                 # only use 1 GPU by default
-                self.ctx = [context.gpu(0)]
+                if num_gpus() > 1:
+                    warnings.warn("You have multiple GPUs, gpu(0) will be used by default."
+                                  "To utilize all your GPUs, specify context as a list of gpus, e.g. context=[mx.gpu(0), mx.gpu(2)] ")
+                self.context = [gpu(0)]
             else:
-                self.ctx = [context.cpu()]
+                self.context = [cpu()]
+
+        # initialize the network
+        if self.initializer:
+            if self._is_initialized():
+                # if already initialized, reinit with user specified initializer
+                warnings.warn("You have already initialized your net, it will be forced re-initialized "
+                              "with the initializer you speficied. You don't need to pass initializer if you alraedy initialized your net.")
+                self.net.initialize(init=self.initializer, ctx=self.context, force_reinit=True)
+            else:
+                # initialize with user specified initializer
+                self.net.initialize(init=self.initializer, ctx=self.context, force_reinit=False)
+        else:
+            if not self._is_initialized():
+                self.net.initialize(ctx=self.context)
+
+        # handle trainers
         if isinstance(trainers, gluon.Trainer):
             self.trainers = [trainers]
         else:
@@ -97,6 +109,15 @@ class Estimator(object):
         if not self.trainers:
             warnings.warn("No trainer specified, default SGD optimizer with learning rate 0.001 is used.")
             self.trainers = [gluon.Trainer(self.net.collect_params(), 'sgd', {'learning_rate': 0.001})]
+
+    def _is_initialized(self):
+        param_dict = self.net.collect_params()
+        for param in param_dict:
+            try:
+                param_dict[param].list_ctx()
+            except RuntimeError:
+                return False
+        return True
 
     def _batch_fn(self, batch, ctx):
         data = gluon.utils.split_and_load(batch[0], ctx_list=ctx, batch_axis=0)
@@ -110,10 +131,11 @@ class Estimator(object):
             event_handlers=None):
 
         if not batch_size:
-            batch_size = 32 * len(self.ctx)
+            batch_size = 32 * len(self.context)
 
         event_handlers = event_handlers or []
-        if not event_handlers:
+        # provide default logging handler
+        if not event_handlers or not any(isinstance(handler, LoggingHandler) for handler in event_handlers):
             event_handlers.append(LoggingHandler(self))
 
         # TODO: handle validation logic and update train stats
@@ -137,7 +159,7 @@ class Estimator(object):
                 metric.reset()
 
             for i, batch in enumerate(train_data):
-                data, label = self._batch_fn(batch, self.ctx)
+                data, label = self._batch_fn(batch, self.context)
 
                 # batch begin
                 for handler in event_handlers:

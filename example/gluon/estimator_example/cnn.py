@@ -1,9 +1,11 @@
+import os
+import sys
+
 import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon import nn, data
-from mxnet.gluon.estimator import estimator, event_handler
-import os
-import sys
+from mxnet.gluon.estimator import estimator
+
 net = nn.Sequential()
 
 net.add(nn.Conv2D(32, kernel_size=3, activation='relu'),
@@ -17,7 +19,7 @@ net.add(nn.Conv2D(32, kernel_size=3, activation='relu'),
 
 
 def load_data_fashion_mnist(batch_size, resize=None, root=os.path.join(
-        '~', '.mxnet', 'datasets', 'fashion-mnist')):
+    '~', '.mxnet', 'datasets', 'fashion-mnist')):
     root = os.path.expanduser(root)  # Expand the user path '~'.
     transformer = []
     if resize:
@@ -35,15 +37,10 @@ def load_data_fashion_mnist(batch_size, resize=None, root=os.path.join(
         num_workers=num_workers)
     return train_iter, test_iter
 
+
 batch_size = 128
 train_data, test_data = load_data_fashion_mnist(batch_size, resize=28)
 loss = gluon.loss.SoftmaxCrossEntropyLoss()
 acc = mx.metric.Accuracy()
-print(net.params)
-net.initialize()
-trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.001})
-est= estimator.Estimator(net=net, loss=loss ,metrics=acc, trainers=trainer)
+est = estimator.Estimator(net=net, loss=loss, metrics=acc)
 est.fit(train_data=train_data, epochs=5)
-
-# with custom logging that writes to file
-#est.fit(train_data=train_data, epochs=5, event_handlers=[event_handler.LoggingHandler(est, 'cnn_log', 'cnn_training_log')])
