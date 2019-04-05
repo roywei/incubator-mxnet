@@ -233,6 +233,11 @@ class Estimator(object):
         self.batch_idx = 0
 
         event_handlers = event_handlers or []
+
+        # The user can pass event handler w/o a list as well
+        # so we cast it to a list.
+        if not isinstance(event_handlers, (list,)):
+            event_handlers = [event_handlers]
         # provide default logging handler
         if not event_handlers or \
                 not any(isinstance(handler, LoggingHandler) for handler in event_handlers):
