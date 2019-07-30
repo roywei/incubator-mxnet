@@ -352,7 +352,7 @@ class Estimator(object):
                 default_handlers.append("ValidationHandler")
             else:
                 # set validation metrics to None if no validation data and no validation handler
-                val_metrics = None
+                val_metrics = []
 
         if not any(isinstance(handler, LoggingHandler) for handler in event_handlers):
             event_handlers.append(LoggingHandler(train_metrics=train_metrics,
