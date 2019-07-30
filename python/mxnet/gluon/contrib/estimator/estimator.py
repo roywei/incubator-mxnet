@@ -334,7 +334,7 @@ class Estimator(object):
     def _prepare_default_handlers(self, val_data, event_handlers):
         event_handlers = event_handlers or []
         default_handlers = []
-        train_metrics, val_metrics = self.prepare_loss_and_metrics()
+        self.prepare_loss_and_metrics()
 
         # no need to add to default handler check as StoppingHandler does not use metrics
         event_handlers.append(StoppingHandler(self.max_epoch, self.max_batch))
@@ -348,15 +348,15 @@ class Estimator(object):
             if val_data:
                 # add default validation handler if validation data found
                 event_handlers.append(ValidationHandler(val_data=val_data, eval_fn=self.evaluate,
-                                                        val_metrics=val_metrics))
+                                                        val_metrics=self.val_metrics))
                 default_handlers.append("ValidationHandler")
             else:
                 # set validation metrics to None if no validation data and no validation handler
-                val_metrics = []
+                self.val_metrics = []
 
         if not any(isinstance(handler, LoggingHandler) for handler in event_handlers):
-            event_handlers.append(LoggingHandler(train_metrics=train_metrics,
-                                                 val_metrics=val_metrics))
+            event_handlers.append(LoggingHandler(train_metrics=self.train_metrics,
+                                                 val_metrics=self.val_metrics))
             default_handlers.append("LoggingHandler")
 
         # if there is a mix of user defined event handlers and default event handlers
@@ -380,7 +380,7 @@ class Estimator(object):
             # remove None metric references
             references = set([ref for ref in references if ref])
             for metric in references:
-                if metric not in train_metrics + val_metrics:
+                if metric not in self.train_metrics + self.val_metrics:
                     msg = "We have added following default handlers for you: %s and used " \
                           "estimator.prepare_loss_and_metrics() to pass metrics to " \
                           "those handlers. Please use the same set of metrics " \
