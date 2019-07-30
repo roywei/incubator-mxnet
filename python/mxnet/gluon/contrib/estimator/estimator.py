@@ -338,9 +338,10 @@ class Estimator(object):
 
         # no need to add to default handler check as StoppingHandler does not use metrics
         event_handlers.append(StoppingHandler(self.max_epoch, self.max_batch))
+        default_handlers.append("StoppingHandler")
 
         if not any(isinstance(handler, MetricHandler) for handler in event_handlers):
-            event_handlers.append(MetricHandler(train_metrics=train_metrics))
+            event_handlers.append(MetricHandler(train_metrics=self.train_metrics))
             default_handlers.append("MetricHandler")
 
         if not any(isinstance(handler, ValidationHandler) for handler in event_handlers):
@@ -350,18 +351,19 @@ class Estimator(object):
                 event_handlers.append(ValidationHandler(val_data=val_data, eval_fn=self.evaluate,
                                                         val_metrics=self.val_metrics))
                 default_handlers.append("ValidationHandler")
+                val_metrics = self.val_metrics
             else:
                 # set validation metrics to None if no validation data and no validation handler
-                self.val_metrics = []
+                val_metrics = []
 
         if not any(isinstance(handler, LoggingHandler) for handler in event_handlers):
             event_handlers.append(LoggingHandler(train_metrics=self.train_metrics,
-                                                 val_metrics=self.val_metrics))
+                                                 val_metrics=val_metrics))
             default_handlers.append("LoggingHandler")
 
         # if there is a mix of user defined event handlers and default event handlers
         # they should have the same set of loss and metrics
-        if default_handlers:
+        if default_handlers and len(event_handlers) > len(default_handlers):
             msg = "You are training with the following default event handlers: %s. " \
                   "They use loss and metrics from estimator.prepare_loss_and_metrics(). " \
                   "Please use the same set of metrics for all your other handlers." % \

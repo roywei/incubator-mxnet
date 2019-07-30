@@ -514,8 +514,8 @@ class CheckpointHandler(TrainBegin, BatchEnd, EpochEnd):
             sym = estimator.net._cached_graph[1]
             sym.save(symbol_file)
         else:
-            self.logger.info("Model architecture(symbol file) is not saved, please use HybridBlock"
-                             "to construct your model, can call net.hybridize() before passing to"
+            self.logger.info("Model architecture(symbol file) is not saved, please use HybridBlock "
+                             "to construct your model, can call net.hybridize() before passing to "
                              "Estimator in order to save model architecture as %s.", symbol_file)
 
     def _save_params_and_trainer(self, estimator, file_prefix):
