@@ -29,7 +29,8 @@ import numpy as np
 from ....metric import EvalMetric
 from ....metric import Loss as metric_loss
 
-__all__ = ['StoppingHandler', 'MetricHandler', 'ValidationHandler',
+__all__ = ['TrainBegin', 'TrainEnd', 'EpochBegin', 'EpochEnd','BatchBegin', 'BatchEnd',
+           'StoppingHandler', 'MetricHandler', 'ValidationHandler',
            'LoggingHandler', 'CheckpointHandler', 'EarlyStoppingHandler']
 
 class TrainBegin(object):
