@@ -343,10 +343,16 @@ class Estimator(object):
             event_handlers.append(MetricHandler(train_metrics=train_metrics))
             default_handlers.append("MetricHandler")
 
-        if val_data and not any(isinstance(handler, ValidationHandler) for handler in event_handlers):
-            event_handlers.append(ValidationHandler(val_data=val_data, eval_fn=self.evaluate,
-                                                    val_metrics=val_metrics))
-            default_handlers.append("ValidationHandler")
+        if not any(isinstance(handler, ValidationHandler) for handler in event_handlers):
+            # no validation handler
+            if val_data:
+                # add default validation handler if validation data found
+                event_handlers.append(ValidationHandler(val_data=val_data, eval_fn=self.evaluate,
+                                                        val_metrics=val_metrics))
+                default_handlers.append("ValidationHandler")
+            else:
+                # set validation metrics to None if no validation data and no validation handler
+                val_metrics = None
 
         if not any(isinstance(handler, LoggingHandler) for handler in event_handlers):
             event_handlers.append(LoggingHandler(train_metrics=train_metrics,
