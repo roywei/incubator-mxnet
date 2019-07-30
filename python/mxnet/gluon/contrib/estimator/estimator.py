@@ -216,7 +216,7 @@ class Estimator(object):
         if not isinstance(val_data, DataLoader):
             raise ValueError("Estimator only support input as Gluon DataLoader. Alternatively, you "
                              "can transform your DataIter or any NDArray into Gluon DataLoader. "
-                             "Refer to gluon.data.dataloader")
+                             "Refer to gluon.data.DataLoader")
 
         for metric in val_metrics:
             metric.reset()
@@ -259,7 +259,7 @@ class Estimator(object):
         batch_axis : int, default 0
             Batch axis to split the training data into devices.
         """
-        if not isinstance(train_data, gluon.data.DataLoader):
+        if not isinstance(train_data, DataLoader):
             raise ValueError("Estimator only support input as Gluon DataLoader. Alternatively, you "
                              "can transform your DataIter or any NDArray into Gluon DataLoader. "
                              "Refer to gluon.data.dataloader")
