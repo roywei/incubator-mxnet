@@ -494,6 +494,7 @@ class DropoutOp {
   Context ctx_;
   cudnnDataType_t dtype_;
   cudnnDropoutDescriptor_t dropout_desc_;
+  // request random resource here
   uint64_t seed_ = 17 + rand() % 4096;  // NOLINT(runtime/threadsafe_fn)
   size_t dropout_reserve_byte_;
   cudnnTensorDescriptor_t x_desc_, y_desc_, dx_desc_, dy_desc_;
