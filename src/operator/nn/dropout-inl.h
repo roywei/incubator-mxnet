@@ -253,9 +253,9 @@ class DropoutOp {
                            const TBlob &mask,
                            const TBlob &out) {
       Stream<xpu> *s = ctx.get_stream<xpu>();
-
+      Random<xpu, float> *prnd = ctx.requested[1].get_random<xpu, float>(s);
       // set dropout state.
-      ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, seed_);
+      ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, prnd->SampleUniform(&random_numbers, 0, 1));
 
       // describe input/output tensor
       int dim[4], stride[4];
@@ -495,7 +495,7 @@ class DropoutOp {
   cudnnDataType_t dtype_;
   cudnnDropoutDescriptor_t dropout_desc_;
   // request random resource here
-  uint64_t seed_ = 17 + rand() % 4096;  // NOLINT(runtime/threadsafe_fn)
+  //uint64_t seed_ = 17 + rand() % 4096;  // NOLINT(runtime/threadsafe_fn)
   size_t dropout_reserve_byte_;
   cudnnTensorDescriptor_t x_desc_, y_desc_, dx_desc_, dy_desc_;
 #endif  // MXNET_USE_CUDNN_DROPOUT
