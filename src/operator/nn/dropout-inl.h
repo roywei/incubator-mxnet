@@ -254,12 +254,12 @@ class DropoutOp {
                            const TBlob &out) {
       Stream<xpu> *s = ctx.get_stream<xpu>();
       
-      Random<xpu, int> *prnd = ctx.requested[1].get_random<xpu, uintint64_t>(s);
+      Random<xpu, int> *prnd = ctx.requested[1].get_random<xpu, int>(s);
       Tensor<xpu, 1, int> temp = ctx.requested[2].get_space_typed<xpu, 1, int>(Shape1(1), s);
       Tensor<xpu, 1, int> random_number = 
           Tensor<xpu, 1, int>(reinterpret_cast<int *>(temp.dptr_), Shape1(1), s);
       prnd->GetRandInt(&random_number);
-      int seed_ = 17 + reinterpret_cast<int *>(&random_number) % 4096;  // NOLINT(runtime/threadsafe_fn)
+      int seed_ = 17 + reinterpret_cast<int *>(random_number) % 4096;  // NOLINT(runtime/threadsafe_fn)
       // set dropout state.
       ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, static_cast<uint64_t>(seed_));
 
