@@ -158,6 +158,7 @@ Example::
           && param.axes.ndim() == 0) {
         request.emplace_back(ResourceRequest::kCuDNNDropoutDesc);
         request.emplace_back(ResourceRequest::kRandom);
+        request.emplace_back(ResourceRequest::kTempSpace);
         return request;
       }
 #endif
