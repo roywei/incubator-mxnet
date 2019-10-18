@@ -257,7 +257,8 @@ class DropoutOp {
       // Tensor<xpu, 1, unsigned> temp = ctx.requested[2].get_space_typed<xpu, 1, unsigned>(Shape1(1), s);
       // Tensor<xpu, 1, unsigned> random_number = 
       //     Tensor<xpu, 1, unsigned>(reinterpret_cast<unsigned *>(temp.dptr_), Shape1(1), s);
-      unsigned seed_ = 17 + prnd->GetRandInt() % 4096;  // NOLINT(runtime/threadsafe_fn)
+      unsigned sd = prnd->GetRandInt();
+      unsigned seed_ = 17 + sd % 4096;  // NOLINT(runtime/threadsafe_fn)
       // set dropout state.
       ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, static_cast<uint64_t>(seed_));
 
