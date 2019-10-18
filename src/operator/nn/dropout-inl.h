@@ -254,13 +254,20 @@ class DropoutOp {
                            const TBlob &out) {
       Stream<xpu> *s = ctx.get_stream<xpu>();
       Random<xpu, unsigned> *prnd = ctx.requested[1].get_random<xpu, unsigned>(s);
-      // Tensor<xpu, 1, unsigned> temp = ctx.requested[2].get_space_typed<xpu, 1, unsigned>(Shape1(1), s);
+      Tensor<xpu, 1, char> workspace =
+        ctx.requested[2].get_space_typed<xpu, 1, char>(Shape1(1), s);
+      // slice workspace
+      char *workspace_ptr = workspace.dptr_;
+      Tensor<xpu, 1, unsigned> random_numbers =
+        Tensor<xpu, 1, unsigned>(reinterpret_cast<unsigned *>(workspace_ptr),
+                                 Shape1(1), s);
+      prnd->GetRandInt(random_numbers);
       // Tensor<xpu, 1, unsigned> random_number = 
       //     Tensor<xpu, 1, unsigned>(reinterpret_cast<unsigned *>(temp.dptr_), Shape1(1), s);
-      unsigned sd = prnd->GetRandInt();
-      unsigned seed_ = 17 + sd % 4096;  // NOLINT(runtime/threadsafe_fn)
+      // unsigned sd = prnd->GetRandInt();
+      uint64_t seed_ = 17 + reinterpret_cast<uint64_t>(random_numbers) % 4096;  // NOLINT(runtime/threadsafe_fn)
       // set dropout state.
-      ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, static_cast<uint64_t>(seed_));
+      ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, seed_);
 
       // describe input/output tensor
       int dim[4], stride[4];
