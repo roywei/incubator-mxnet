@@ -253,7 +253,7 @@ class DropoutOp {
                            const TBlob &mask,
                            const TBlob &out) {
       Stream<xpu> *s = ctx.get_stream<xpu>();
-      Random<cpu, unsigned> *prnd = ctx.requested[1].get_random<cpu, unsigned>(s);
+      Random<cpu, unsigned> *prnd = ctx.requested[1].get_random<cpu, unsigned>();
       unsigned data = prnd->GetRandInt();
       uint64_t seed_ = 17 + reinterpret_cast<uint64_t>(data) % 4096;
       // set dropout state.
