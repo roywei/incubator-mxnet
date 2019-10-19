@@ -251,11 +251,9 @@ class DropoutOp {
   inline void CuDNNForward(const OpContext &ctx,
                            const TBlob &in,
                            const TBlob &mask,
-                           const TBlob &out) {
+                           const TBlob &out,
+                           uint64_t seed_) {
       Stream<xpu> *s = ctx.get_stream<xpu>();
-      Random<cpu, unsigned> *prnd = ctx.requested[1].get_random<cpu, unsigned>();
-      unsigned data = prnd->GetRandInt();
-      uint64_t seed_ = 17 + reinterpret_cast<uint64_t>(data) % 4096;
       // set dropout state.
       ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, seed_);
 
@@ -346,6 +344,9 @@ class DropoutOp {
         CHECK_EQ(out_data.size(), 2U);
       }
       Stream<xpu> *s = ctx.get_stream<xpu>();
+      Random<cpu, unsigned> *prnd = ctx.requested[1].get_random<cpu, unsigned>(s);
+      unsigned data = prnd->GetRandInt();
+      uint64_t seed_ = 17 + static_cast<uint64_t>(data) % 4096;
       const TBlob &in = in_data[dropout::kData];
       const TBlob &out = out_data[dropout::kOut];
       const TBlob &mask = out_data[dropout::kMask];
@@ -360,7 +361,7 @@ class DropoutOp {
 #endif  // MXNET_USE_MKL_DROPOUT
 #if MXNET_USE_CUDNN_DROPOUT && defined(__CUDACC__)
           if (CuDNNAvailable()) {
-            CuDNNForward(ctx, in, mask, out);
+            CuDNNForward(ctx, in, mask, out, seed_);
             return;
           }
 #endif  // MXNET_USE_CUDNN_DROPOUT && defined(__CUDACC__)
