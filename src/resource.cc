@@ -431,7 +431,7 @@ void Resource::get_cudnn_dropout_desc(
   if (!state_space->handle.size) {
     // not initialized yet.
     Resource request = ResourceManager::Get()->Request(Context::CPU(), ResourceRequest::kRandom);
-    Random<cpu, unsigned> *prnd = request.get_random<cpu, unsigned>(NewStream<cpu>(0));
+    mshadow::Random<cpu, unsigned> *prnd = request.get_random<cpu, unsigned>(NewStream<cpu>(0));
     unsigned data = prnd->GetRandInt();
     uint64_t seed_ = 17 + static_cast<uint64_t>(data) % 4096;
     size_t dropout_state_size;
@@ -443,7 +443,7 @@ void Resource::get_cudnn_dropout_desc(
                                          dropout,
                                          state_space->GetSpace(dropout_state_size),
                                          dropout_state_size,
-                                         seed));
+                                         seed_));
   } else {
     // cudnnRestoreDropoutDescriptor() introduced with cuDNN v7
     STATIC_ASSERT_CUDNN_VERSION_GE(7000);
