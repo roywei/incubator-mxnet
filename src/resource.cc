@@ -422,8 +422,7 @@ void* Resource::get_host_space_internal(size_t size) const {
 void Resource::get_cudnn_dropout_desc(
     cudnnDropoutDescriptor_t* dropout_desc,
     mshadow::Stream<gpu> *stream,
-    const float dropout,
-    uint64_t seed) const {
+    const float dropout) const {
 
   CHECK_EQ(req.type, ResourceRequest::kCuDNNDropoutDesc);
   auto state_space = static_cast<resource::SpaceAllocator*>(ptr_);
@@ -431,6 +430,10 @@ void Resource::get_cudnn_dropout_desc(
     << "The device id of cudnn dropout state space doesn't match that from stream.";
   if (!state_space->handle.size) {
     // not initialized yet.
+    Resource request = ResourceManager::Get()->Request(Context::CPU(), ResourceRequest::kRandom);
+    Random<cpu, unsigned> *prnd = request.get_random<cpu, unsigned>(NewStream<cpu>(0));
+    unsigned data = prnd->GetRandInt();
+    uint64_t seed_ = 17 + static_cast<uint64_t>(data) % 4096;
     size_t dropout_state_size;
     CUDNN_CALL(cudnnDropoutGetStatesSize(stream->dnn_handle_, &dropout_state_size));
     // reserve GPU space
@@ -448,7 +451,7 @@ void Resource::get_cudnn_dropout_desc(
                                              dropout,
                                              state_space->handle.dptr,
                                              state_space->handle.size,
-                                             seed));
+                                             0));
   }
 }
 #endif  // MXNET_USE_CUDNN == 1
