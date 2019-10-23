@@ -431,7 +431,9 @@ void Resource::get_cudnn_dropout_desc(
   if (!state_space->handle.size) {
     // not initialized yet.
     Resource request = ResourceManager::Get()->Request(Context::CPU(), ResourceRequest::kRandom);
-    mshadow::Random<cpu, unsigned> *prnd = request.get_random<cpu, unsigned>(NewStream<cpu>(0));
+    mshadow::Stream<cpu> *s = mshadow::NewStream<cpu>(0)
+    mshadow::Random<cpu, unsigned> *prnd = 
+      request.get_random<cpu, unsigned>(s);
     unsigned data = prnd->GetRandInt();
     uint64_t seed_ = 17 + static_cast<uint64_t>(data) % 4096;
     size_t dropout_state_size;
