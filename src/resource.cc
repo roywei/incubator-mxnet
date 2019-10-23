@@ -423,19 +423,19 @@ void Resource::get_cudnn_dropout_desc(
     cudnnDropoutDescriptor_t* dropout_desc,
     mshadow::Stream<gpu> *stream,
     const float dropout) const {
-
+  using namespace mshadow;
   CHECK_EQ(req.type, ResourceRequest::kCuDNNDropoutDesc);
   auto state_space = static_cast<resource::SpaceAllocator*>(ptr_);
   CHECK_EQ(state_space->ctx.dev_id, stream->dev_id)
     << "The device id of cudnn dropout state space doesn't match that from stream.";
   if (!state_space->handle.size) {
     // not initialized yet.
+    // get a random seed from mxnet cpu random
     Resource request = ResourceManager::Get()->Request(Context::CPU(), ResourceRequest::kRandom);
-    mshadow::Stream<cpu> *s = mshadow::NewStream<cpu>(0);
-    mshadow::Random<cpu, unsigned> *prnd = 
-      request.get_random<cpu, unsigned>(s);
+    Stream<cpu> *s = NewStream<cpu>(0);
+    Random<cpu, unsigned> *prnd = request.get_random<cpu, unsigned>(s);
     unsigned data = prnd->GetRandInt();
-    uint64_t seed_ = 17 + static_cast<uint64_t>(data) % 4096;
+    uint64_t seed = 17 + static_cast<uint64_t>(data) % 4096;
     size_t dropout_state_size;
     CUDNN_CALL(cudnnDropoutGetStatesSize(stream->dnn_handle_, &dropout_state_size));
     // reserve GPU space
@@ -445,10 +445,11 @@ void Resource::get_cudnn_dropout_desc(
                                          dropout,
                                          state_space->GetSpace(dropout_state_size),
                                          dropout_state_size,
-                                         seed_));
+                                         seed));
   } else {
     // cudnnRestoreDropoutDescriptor() introduced with cuDNN v7
     STATIC_ASSERT_CUDNN_VERSION_GE(7000);
+    // already initialized, using dummy seed 0 as it has no effect here
     CUDNN_CALL(cudnnRestoreDropoutDescriptor(*dropout_desc, stream->dnn_handle_,
                                              dropout,
                                              state_space->handle.dptr,
