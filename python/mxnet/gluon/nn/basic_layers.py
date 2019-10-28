@@ -260,15 +260,18 @@ class Dropout(HybridBlock):
         `Dropout: A Simple Way to Prevent Neural Networks from Overfitting
         <http://www.cs.toronto.edu/~rsalakhu/papers/srivastava14a.pdf>`_
     """
-    def __init__(self, rate, axes=(), **kwargs):
+    def __init__(self, rate, axes=(), cudnn_off=False, cudnn_seed=None, **kwargs):
         super(Dropout, self).__init__(**kwargs)
         self._rate = rate
         self._axes = axes
+        self._cudnn_off = cudnn_off
+        self._cudnn_seed = cudnn_seed
 
     def hybrid_forward(self, F, x):
         if self._rate > 0:
             dropout = F.npx.dropout if is_np_array() else F.Dropout
-            return dropout(x, p=self._rate, axes=self._axes, name='fwd', cudnn_off=False)
+            return dropout(x, p=self._rate, axes=self._axes, name='fwd',
+                           cudnn_off=self._cudnn_off, cudnn_seed=self._cudnn_seed )
         else:
             copy = F.np.copy if is_np_array() else F.identity
             return copy(x)

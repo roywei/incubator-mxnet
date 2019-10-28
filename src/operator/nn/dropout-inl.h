@@ -69,6 +69,7 @@ struct DropoutParam : public dmlc::Parameter<DropoutParam> {
   int mode;
   mxnet::TShape axes;
   dmlc::optional<bool> cudnn_off;
+  dmlc::optional<int> cudnn_seed;
   DMLC_DECLARE_PARAMETER(DropoutParam) {
     DMLC_DECLARE_FIELD(p).set_default(0.5)
     .set_range(0, 1)
@@ -83,6 +84,9 @@ struct DropoutParam : public dmlc::Parameter<DropoutParam> {
     DMLC_DECLARE_FIELD(cudnn_off).set_default(dmlc::optional<bool>(false))
     .describe("Whether to turn off cudnn in dropout operator. "
               "This option is ignored if axes is specified.");
+    DMLC_DECLARE_FIELD(cudnn_seed).set_default(dmlc::optional<int>())
+    .describe("Seed to use for cudnn dropout, default to generate a random seed. "
+              "cudnn_off must be false to use cudnn_seed.");
   }
 };  // struct DropoutParam
 
@@ -220,6 +224,7 @@ class DropoutOp {
 #if MXNET_USE_CUDNN_DROPOUT
     this->cudnn_off_ = param.cudnn_off && param.cudnn_off.value();
     this->ctx_ = ctx;
+    this->cudnn_seed_ = param.cudnn_seed.has_value()? static_cast<uint64_t>(param.cudnn_seed.value()) : seed_;
     if (ctx.dev_type == kGPU && this->pkeep_ > 0 && !this->cudnn_off_) {
       dtype_ = mshadow::DataType<DType>::kCudnnFlag;
       CUDNN_CALL(cudnnCreateTensorDescriptor(&x_desc_));
@@ -255,7 +260,7 @@ class DropoutOp {
       Stream<xpu> *s = ctx.get_stream<xpu>();
 
       // set dropout state.
-      ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, seed_);
+      ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, this->cudnn_seed_);
 
       // describe input/output tensor
       int dim[4], stride[4];
@@ -494,6 +499,7 @@ class DropoutOp {
   Context ctx_;
   cudnnDataType_t dtype_;
   cudnnDropoutDescriptor_t dropout_desc_;
+  uint64_t cudnn_seed_;
   uint64_t seed_ = 17 + rand() % 4096;  // NOLINT(runtime/threadsafe_fn)
   size_t dropout_reserve_byte_;
   cudnnTensorDescriptor_t x_desc_, y_desc_, dx_desc_, dy_desc_;
