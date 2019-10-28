@@ -86,7 +86,7 @@ struct DropoutParam : public dmlc::Parameter<DropoutParam> {
               "This option is ignored if axes is specified.");
     DMLC_DECLARE_FIELD(cudnn_seed).set_default(dmlc::optional<int>())
     .describe("Fix seed to use for cudnn dropout, default to generate a random seed. "
-              "cudnn_off must be false to use cudnn_seed.".
+              "cudnn_off must be false to use cudnn_seed. "
               "Use mx.random.seed() to fix seed if cudnn_off is true.");
   }
 };  // struct DropoutParam
