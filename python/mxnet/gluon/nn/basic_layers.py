@@ -266,11 +266,11 @@ class Dropout(HybridBlock):
         self._axes = axes
 
 
-    def hybrid_forward(self, F, x, cudnn_off=False, cudnn_seed=None):
+    def hybrid_forward(self, F, x, *args, **kwargs):
         if self._rate > 0:
             dropout = F.npx.dropout if is_np_array() else F.Dropout
             return dropout(x, p=self._rate, axes=self._axes, name='fwd',
-                           cudnn_off=cudnn_off, cudnn_seed=cudnn_seed)
+                           cudnn_off=False, **kwargs)
         else:
             copy = F.np.copy if is_np_array() else F.identity
             return copy(x)

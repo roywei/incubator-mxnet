@@ -226,7 +226,6 @@ class DropoutOp {
     this->cudnn_off_ = param.cudnn_off && param.cudnn_off.value();
     this->ctx_ = ctx;
     this->cudnn_seed_ = param.cudnn_seed.has_value()? static_cast<uint64_t>(param.cudnn_seed.value()) : seed_;
-    LOG(FATAL) << "using cudnn seed " << this->cudnn_seed_;
     if (ctx.dev_type == kGPU && this->pkeep_ > 0 && !this->cudnn_off_) {
       dtype_ = mshadow::DataType<DType>::kCudnnFlag;
       CUDNN_CALL(cudnnCreateTensorDescriptor(&x_desc_));
