@@ -253,8 +253,15 @@ class DropoutOp {
       Stream<xpu> *s = ctx.get_stream<xpu>();
 
       // set dropout state.
+      Random<xpu, unsigned> *prnd = ctx.requested[1].get_random<xpu, unsigned>(s);
+      uint64_t rng_seed = prnd->GetSeed();
+      std::cout << " Original dropout seed:  " << seed_ << std::endl;
+      std::cout << " RNG seed:  " << rng_seed << std::endl;
+      // reset dropout descriptor if rng seed changed.
+      bool reset = seed_ != rng_seed;
+      seed_ = rng_seed;
+      std::cout << " Original dropout seed changed to" << seed_ << std::endl;
       ctx.requested[0].get_cudnn_dropout_desc(&dropout_desc_, s, 1.0f - this->pkeep_, seed_);
-
       // describe input/output tensor
       int dim[4], stride[4];
       dim[0] = 1;
@@ -490,7 +497,7 @@ class DropoutOp {
   Context ctx_;
   cudnnDataType_t dtype_;
   cudnnDropoutDescriptor_t dropout_desc_;
-  uint64_t seed_ = 17 + rand() % 4096;  // NOLINT(runtime/threadsafe_fn)
+  uint64_t seed;
   size_t dropout_reserve_byte_;
   cudnnTensorDescriptor_t x_desc_, y_desc_, dx_desc_, dy_desc_;
 #endif  // MXNET_USE_CUDNN_DROPOUT
